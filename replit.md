@@ -29,8 +29,12 @@ The application is fully functional with the following features implemented:
   - Built responsive frontend with Bootstrap 5
   - Seeded database with 6 AYUSH medicinal plants
   - Created admin dashboard with HTTP Basic Authentication
-  - Added secure payment flow with Payment Intents API
-  - Implemented proper admin access control
+  - **Security hardening completed:**
+    - Server-side payment validation with cart hash verification
+    - Auto-generated secure session secrets and admin credentials
+    - CSRF protection on all admin operations
+    - PaymentIntent binding to prevent payment manipulation
+    - Production-ready security implementation
 
 ## Project Architecture
 Based on the provided architecture diagram:
