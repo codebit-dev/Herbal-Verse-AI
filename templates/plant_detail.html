@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plant['name'] }} - Virtual Herbal Garden{% endblock %}
+
+{% block extra_css %}
+<style>
+#viewer-container {
+    width: 100%;
+    height: 500px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    position: relative;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/garden">Garden</a></li>
+            <li class="breadcrumb-item active">{{ plant['name'] }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row mb-5">
+        <div class="col-lg-6">
+            <h1>{{ plant['name'] }}</h1>
+            <h4 class="text-muted"><em>{{ plant['scientific_name'] }}</em></h4>
+            <span class="badge bg-success fs-6 mb-3">{{ plant['category'] }}</span>
+            
+            <div id="viewer-container" class="mb-4">
+                <div class="text-center text-white pt-5">
+                    <i class="fas fa-leaf fa-5x mb-3"></i>
+                    <h3>3D Plant Viewer</h3>
+                    <p>Interactive 3D visualization coming soon</p>
+                    <p class="small">Rotate, zoom, and explore the plant structure</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-info-circle"></i> Overview</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ plant['overview'] }}</p>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-medkit"></i> Medicinal Uses</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ plant['medicinal_uses'] }}</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-seedling"></i> Cultivation</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ plant['cultivation'] }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center">
+        <a href="/garden" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-arrow-left"></i> Back to Garden
+        </a>
+        <a href="/shop" class="btn btn-success btn-lg">
+            <i class="fas fa-shopping-bag"></i> Shop Related Products
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/static/js/viewer.js"></script>
+{% endblock %}

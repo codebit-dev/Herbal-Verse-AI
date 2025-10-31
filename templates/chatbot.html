@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}AI Assistant - Virtual Herbal Garden{% endblock %}
+
+{% block extra_css %}
+<style>
+#chat-container {
+    height: 600px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+.message {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 10px;
+    max-width: 70%;
+}
+.user-message {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+.bot-message {
+    background-color: white;
+    border: 1px solid #ddd;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4"><i class="fas fa-robot"></i> AI Ayurveda Assistant</h1>
+    <p class="text-center lead mb-5">Ask me anything about AYUSH medicinal plants and Ayurveda</p>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div id="chat-container">
+                <div class="message bot-message">
+                    <strong><i class="fas fa-leaf text-success"></i> AI Assistant:</strong>
+                    <p>Namaste! I'm your AI guide to Ayurveda and medicinal plants. Ask me about specific plants, their uses, Ayurvedic principles, or health conditions. How can I help you today?</p>
+                </div>
+            </div>
+            
+            <form id="chat-form" class="mt-3">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-lg" id="user-input" 
+                           placeholder="Ask about medicinal plants, benefits, or Ayurveda..." required>
+                    <button type="submit" class="btn btn-primary" id="send-button">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-3">
+                <p class="text-muted small">Example questions:</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-secondary suggestion-btn">What is Ashwagandha good for?</button>
+                    <button class="btn btn-sm btn-outline-secondary suggestion-btn">How to grow Tulsi at home?</button>
+                    <button class="btn btn-sm btn-outline-secondary suggestion-btn">What are adaptogens?</button>
+                    <button class="btn btn-sm btn-outline-secondary suggestion-btn">Best herbs for immunity</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const chatContainer = document.getElementById('chat-container');
+const chatForm = document.getElementById('chat-form');
+const userInput = document.getElementById('user-input');
+const sendButton = document.getElementById('send-button');
+
+document.querySelectorAll('.suggestion-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        userInput.value = this.textContent;
+        chatForm.dispatchEvent(new Event('submit'));
+    });
+});
+
+chatForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const message = userInput.value.trim();
+    if (!message) return;
+    
+    addMessage(message, 'user');
+    userInput.value = '';
+    
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: message})
+        });
+        
+        const data = await response.json();
+        addMessage(data.response, 'bot');
+    } catch (error) {
+        addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+    }
+    
+    sendButton.disabled = false;
+    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+});
+
+function addMessage(text, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    
+    if (sender === 'user') {
+        messageDiv.innerHTML = `<strong>You:</strong><p>${text}</p>`;
+    } else {
+        messageDiv.innerHTML = `<strong><i class="fas fa-leaf text-success"></i> AI Assistant:</strong><p>${text}</p>`;
+    }
+    
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+</script>
+{% endblock %}

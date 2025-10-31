@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Virtual Herbal Garden{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <h1 class="text-center mb-5"><i class="fas fa-cog"></i> Admin Dashboard</h1>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-leaf fa-3x text-success mb-3"></i>
+                    <h2>{{ plant_count }}</h2>
+                    <p class="text-muted">Total Plants</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-shopping-bag fa-3x text-primary mb-3"></i>
+                    <h2>{{ product_count }}</h2>
+                    <p class="text-muted">Products</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-shopping-cart fa-3x text-info mb-3"></i>
+                    <h2>{{ order_count }}</h2>
+                    <p class="text-muted">Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-3x text-success mb-3"></i>
+                    <h2>${{ "%.2f"|format(revenue) }}</h2>
+                    <p class="text-muted">Revenue</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning">
+                    <h5><i class="fas fa-clock"></i> Pending Community Submissions</h5>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if pending_submissions %}
+                        {% for submission in pending_submissions %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6>{{ submission['plant_name'] }}</h6>
+                                {% if submission['scientific_name'] %}
+                                <p class="text-muted"><em>{{ submission['scientific_name'] }}</em></p>
+                                {% endif %}
+                                <p>{{ submission['description'] }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        Submitted by: {{ submission['submitted_by'] }} 
+                                        ({{ submission['submitted_email'] }})
+                                    </small>
+                                    <div>
+                                        <button class="btn btn-sm btn-success approve-btn" 
+                                                data-id="{{ submission['id'] }}">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button class="btn btn-sm btn-danger reject-btn" 
+                                                data-id="{{ submission['id'] }}">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">No pending submissions</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-receipt"></i> Recent Orders</h5>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if recent_orders %}
+                        {% for order in recent_orders %}
+                        <div class="card mb-2">
+                            <div class="card-body p-2">
+                                <small>
+                                    <strong>{{ order['customer_name'] }}</strong><br>
+                                    ${{ "%.2f"|format(order['total_amount']) }}<br>
+                                    <span class="badge bg-success">{{ order['status'] }}</span>
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted small">No orders yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        if (confirm('Approve this submission?')) {
+            try {
+                const response = await fetch(`/api/admin/approve-submission/${id}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert('Error approving submission');
+            }
+        }
+    });
+});
+
+document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        if (confirm('Reject this submission?')) {
+            try {
+                const response = await fetch(`/api/admin/reject-submission/${id}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert('Error rejecting submission');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

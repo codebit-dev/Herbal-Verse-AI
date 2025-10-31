@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - Virtual Herbal Garden{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4"><i class="fas fa-shopping-cart"></i> Checkout</h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5>Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>{{ product['name'] }}</td>
+                                <td>${{ "%.2f"|format(product['price']) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-success">
+                                <th>Total</th>
+                                <th>${{ "%.2f"|format(total) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <form id="checkout-form">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="customer-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="customer-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="customer-phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Shipping Address</label>
+                            <textarea class="form-control" id="customer-address" rows="3" required></textarea>
+                        </div>
+                        
+                        <div id="payment-message" class="alert" style="display:none;"></div>
+                        
+                        <button type="submit" class="btn btn-success btn-lg w-100" id="submit-button">
+                            <i class="fas fa-lock"></i> Complete Order (${{ "%.2f"|format(total) }})
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Payment Information</h5>
+                    <p><i class="fas fa-shield-alt text-success"></i> Secure payment powered by Stripe</p>
+                    <p><i class="fas fa-truck text-primary"></i> Free shipping on orders over $50</p>
+                    <p><i class="fas fa-undo text-info"></i> 30-day return policy</p>
+                    <p><i class="fas fa-certificate text-warning"></i> 100% authentic products</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('checkout-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('customer-name').value;
+    const email = document.getElementById('customer-email').value;
+    const total = {{ total }};
+    
+    const messageDiv = document.getElementById('payment-message');
+    const submitButton = document.getElementById('submit-button');
+    
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch('/api/complete-order', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                amount: total,
+                payment_id: 'demo_' + Date.now()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            messageDiv.className = 'alert alert-success';
+            messageDiv.textContent = 'Order completed successfully! Thank you for your purchase.';
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                window.location.href = '/shop';
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Order failed');
+        }
+    } catch (error) {
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Error: ' + error.message;
+        messageDiv.style.display = 'block';
+        
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-lock"></i> Complete Order (${{ "%.2f"|format(total) }})';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Community Portal - Virtual Herbal Garden{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4"><i class="fas fa-users"></i> Community Portal</h1>
+    <p class="text-center lead mb-5">Share your knowledge and contribute to our herbal database</p>
+    
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-plus-circle"></i> Submit a Plant</h5>
+                </div>
+                <div class="card-body">
+                    <form id="submit-plant-form" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Plant Name</label>
+                            <input type="text" class="form-control" name="plant_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Scientific Name</label>
+                            <input type="text" class="form-control" name="scientific_name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description & Medicinal Uses</label>
+                            <textarea class="form-control" name="description" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Your Name</label>
+                            <input type="text" class="form-control" name="submitted_by" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Your Email</label>
+                            <input type="email" class="form-control" name="submitted_email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Plant Image (Optional)</label>
+                            <input type="file" class="form-control" name="image" accept="image/*">
+                        </div>
+                        
+                        <div id="submit-message" class="alert" style="display:none;"></div>
+                        
+                        <button type="submit" class="btn btn-success w-100" id="submit-button">
+                            <i class="fas fa-paper-plane"></i> Submit for Review
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-list"></i> Recent Community Submissions</h5>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if submissions %}
+                        {% for submission in submissions %}
+                        <div class="card mb-3 {% if submission['status'] == 'approved' %}border-success{% elif submission['status'] == 'pending' %}border-warning{% else %}border-danger{% endif %}">
+                            <div class="card-body">
+                                <h6>{{ submission['plant_name'] }}</h6>
+                                {% if submission['scientific_name'] %}
+                                <p class="text-muted small"><em>{{ submission['scientific_name'] }}</em></p>
+                                {% endif %}
+                                <p class="small">{{ submission['description'][:150] }}...</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">By: {{ submission['submitted_by'] }}</small>
+                                    <span class="badge 
+                                        {% if submission['status'] == 'approved' %}bg-success
+                                        {% elif submission['status'] == 'pending' %}bg-warning
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ submission['status']|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">No submissions yet. Be the first to contribute!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const submitForm = document.getElementById('submit-plant-form');
+const submitButton = document.getElementById('submit-button');
+const submitMessage = document.getElementById('submit-message');
+
+submitForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    submitMessage.style.display = 'none';
+    
+    const formData = new FormData(submitForm);
+    
+    try {
+        const response = await fetch('/api/submit-plant', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            submitMessage.className = 'alert alert-success';
+            submitMessage.textContent = data.message;
+            submitMessage.style.display = 'block';
+            submitForm.reset();
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            submitMessage.className = 'alert alert-danger';
+            submitMessage.textContent = data.error || 'Submission failed. Please try again.';
+            submitMessage.style.display = 'block';
+        }
+    } catch (error) {
+        submitMessage.className = 'alert alert-danger';
+        submitMessage.textContent = 'An error occurred. Please try again.';
+        submitMessage.style.display = 'block';
+    }
+    
+    submitButton.disabled = false;
+    submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Submit for Review';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Shop - AYUSH Herbal Products{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4"><i class="fas fa-shopping-bag"></i> Herbal Products Shop</h1>
+    <p class="text-center lead mb-5">Authentic Ayurvedic products and herbal supplements</p>
+    
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-md-4">
+            <div class="card product-card h-100 shadow-sm">
+                <div class="product-image-placeholder bg-light p-5 text-center">
+                    <i class="fas fa-pills fa-4x text-success"></i>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ product['name'] }}</h5>
+                    {% if product['plant_name'] %}
+                    <p class="text-muted small"><i class="fas fa-leaf"></i> {{ product['plant_name'] }}</p>
+                    {% endif %}
+                    <p class="card-text">{{ product['description'] }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-4 text-success fw-bold">${{ "%.2f"|format(product['price']) }}</span>
+                        <span class="badge bg-info">In Stock: {{ product['stock'] }}</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <button class="btn btn-primary w-100 add-to-cart" data-product-id="{{ product['id'] }}">
+                        <i class="fas fa-cart-plus"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', function() {
+        const productId = this.getAttribute('data-product-id');
+        addToCart(productId);
+    });
+});
+</script>
+{% endblock %}
