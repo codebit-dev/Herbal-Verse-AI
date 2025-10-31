@@ -5,11 +5,21 @@ from werkzeug.utils import secure_filename
 from openai import OpenAI
 import stripe
 import json
+import hashlib
 from datetime import datetime
 from database import init_db, get_db, seed_data
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
+
+if 'SESSION_SECRET' in os.environ:
+    app.secret_key = os.environ['SESSION_SECRET']
+else:
+    import secrets
+    app.secret_key = secrets.token_hex(32)
+    print("WARNING: SESSION_SECRET not set. Using randomly generated secret.")
+    print("This is OK for development but NOT for production!")
+    print("Set SESSION_SECRET environment variable for production use.")
+
 CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
@@ -19,12 +29,49 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 openai_api_key = os.environ.get('OPENAI_API_KEY', '')
 openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+stripe_publishable_key = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_demo')
+
+import secrets
+
+if 'ADMIN_USERNAME' in os.environ and 'ADMIN_PASSWORD' in os.environ:
+    ADMIN_USERNAME = os.environ['ADMIN_USERNAME']
+    ADMIN_PASSWORD = os.environ['ADMIN_PASSWORD']
+else:
+    ADMIN_USERNAME = 'admin_' + secrets.token_hex(4)
+    ADMIN_PASSWORD = secrets.token_urlsafe(16)
+    print("\n" + "="*70)
+    print("WARNING: Admin credentials not set. Auto-generated secure credentials:")
+    print(f"  Username: {ADMIN_USERNAME}")
+    print(f"  Password: {ADMIN_PASSWORD}")
+    print("\nFor production, set ADMIN_USERNAME and ADMIN_PASSWORD environment variables!")
+    print("="*70 + "\n")
+
+CSRF_SECRET = secrets.token_hex(32)
 
 init_db()
 seed_data()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def check_admin_auth():
+    auth = request.authorization
+    if not auth or auth.username != ADMIN_USERNAME or auth.password != ADMIN_PASSWORD:
+        return False
+    return True
+
+def require_admin_auth():
+    if not check_admin_auth():
+        return jsonify({'error': 'Authentication required'}), 401
+    return None
+
+def generate_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+def verify_csrf_token(token):
+    return token and session.get('csrf_token') == token
 
 @app.route('/')
 def index():
@@ -108,19 +155,49 @@ def checkout():
             total += product['price']
     
     conn.close()
-    return render_template('checkout.html', products=products, total=total)
+    return render_template('checkout.html', products=products, total=total, stripe_publishable_key=stripe_publishable_key)
 
 @app.route('/api/create-payment-intent', methods=['POST'])
 def create_payment_intent():
     try:
-        data = request.json or {}
-        amount = int(float(data.get('amount', 0)) * 100)
+        cart_items = session.get('cart', [])
+        if not cart_items:
+            return jsonify({'error': 'Cart is empty'}), 400
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        total = 0
+        product_ids = []
+        for item_id in cart_items:
+            cursor.execute('SELECT * FROM products WHERE id = ?', (item_id,))
+            product = cursor.fetchone()
+            if product:
+                total += product['price']
+                product_ids.append(product['id'])
+        
+        conn.close()
+        
+        if total <= 0:
+            return jsonify({'error': 'Invalid cart total'}), 400
+        
+        amount = int(total * 100)
+        
+        cart_hash = hashlib.sha256(json.dumps(sorted(product_ids)).encode()).hexdigest()
         
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency='usd',
-            metadata={'customer_email': data.get('email', '')}
+            metadata={
+                'cart_hash': cart_hash,
+                'product_count': len(product_ids)
+            }
         )
+        
+        session['payment_intent_id'] = intent.id
+        session['cart_hash'] = cart_hash
+        session['cart_total'] = total
+        session.modified = True
         
         return jsonify({'clientSecret': intent.client_secret})
     except Exception as e:
@@ -131,23 +208,75 @@ def complete_order():
     try:
         data = request.json or {}
         cart_items = session.get('cart', [])
+        payment_intent_id = data.get('payment_intent_id', '')
+        
+        if not payment_intent_id:
+            return jsonify({'error': 'Payment verification required'}), 400
+        
+        if payment_intent_id != session.get('payment_intent_id'):
+            return jsonify({'error': 'Invalid payment intent'}), 400
+        
+        if not cart_items:
+            return jsonify({'error': 'Cart is empty'}), 400
         
         conn = get_db()
         cursor = conn.cursor()
         
+        server_total = 0
+        product_ids = []
+        for item_id in cart_items:
+            cursor.execute('SELECT * FROM products WHERE id = ?', (item_id,))
+            product = cursor.fetchone()
+            if product:
+                server_total += product['price']
+                product_ids.append(product['id'])
+        
+        cart_hash = hashlib.sha256(json.dumps(sorted(product_ids)).encode()).hexdigest()
+        
+        if cart_hash != session.get('cart_hash'):
+            conn.close()
+            return jsonify({'error': 'Cart has been modified'}), 400
+        
+        if stripe.api_key and payment_intent_id.startswith('pi_'):
+            try:
+                payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                
+                if payment_intent.status != 'succeeded':
+                    conn.close()
+                    return jsonify({'error': 'Payment not completed'}), 400
+                
+                expected_amount = int(server_total * 100)
+                if payment_intent.amount != expected_amount:
+                    conn.close()
+                    return jsonify({'error': 'Payment amount mismatch'}), 400
+                
+                if payment_intent.metadata.get('cart_hash') != cart_hash:
+                    conn.close()
+                    return jsonify({'error': 'Cart verification failed'}), 400
+                    
+            except stripe.error.StripeError as e:
+                conn.close()
+                return jsonify({'error': f'Payment verification failed: {str(e)}'}), 400
+        else:
+            conn.close()
+            return jsonify({'error': 'Payment processing is not configured'}), 400
+        
         cursor.execute('''
             INSERT INTO orders (customer_name, customer_email, total_amount, items, stripe_payment_id, status)
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (data.get('name', ''), data.get('email', ''), data.get('amount', 0), json.dumps(cart_items), 
-              data.get('payment_id', ''), 'completed'))
+        ''', (data.get('name', ''), data.get('email', ''), server_total, json.dumps(cart_items), 
+              payment_intent_id, 'completed'))
         
         conn.commit()
         conn.close()
         
+        session.pop('payment_intent_id', None)
+        session.pop('cart_hash', None)
+        session.pop('cart_total', None)
         session['cart'] = []
         session.modified = True
         
-        log_analytics('order_completed', {'amount': data.get('amount', 0), 'items_count': len(cart_items)})
+        log_analytics('order_completed', {'amount': server_total, 'items_count': len(cart_items)})
         
         return jsonify({'success': True})
     except Exception as e:
@@ -278,6 +407,13 @@ def submit_plant():
 
 @app.route('/admin')
 def admin():
+    if not check_admin_auth():
+        return ('Admin access requires authentication. Default credentials: admin/admin123', 401, {
+            'WWW-Authenticate': 'Basic realm="Admin Area"'
+        })
+    
+    csrf_token = generate_csrf_token()
+    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -307,10 +443,19 @@ def admin():
                          order_count=order_count,
                          revenue=revenue,
                          pending_submissions=pending_submissions,
-                         recent_orders=recent_orders)
+                         recent_orders=recent_orders,
+                         csrf_token=csrf_token)
 
 @app.route('/api/admin/approve-submission/<int:submission_id>', methods=['POST'])
 def approve_submission(submission_id):
+    auth_error = require_admin_auth()
+    if auth_error:
+        return auth_error
+    
+    data = request.json or {}
+    if not verify_csrf_token(data.get('csrf_token')):
+        return jsonify({'error': 'CSRF token validation failed'}), 403
+    
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -323,6 +468,14 @@ def approve_submission(submission_id):
 
 @app.route('/api/admin/reject-submission/<int:submission_id>', methods=['POST'])
 def reject_submission(submission_id):
+    auth_error = require_admin_auth()
+    if auth_error:
+        return auth_error
+    
+    data = request.json or {}
+    if not verify_csrf_token(data.get('csrf_token')):
+        return jsonify({'error': 'CSRF token validation failed'}), 403
+    
     try:
         conn = get_db()
         cursor = conn.cursor()

@@ -115,19 +115,28 @@
 </div>
 
 <script>
+const csrfToken = '{{ csrf_token }}';
+
 document.querySelectorAll('.approve-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
         const id = this.getAttribute('data-id');
         if (confirm('Approve this submission?')) {
             try {
                 const response = await fetch(`/api/admin/approve-submission/${id}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({csrf_token: csrfToken})
                 });
-                if (response.ok) {
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
                     window.location.reload();
+                } else {
+                    alert(result.error || 'Error approving submission');
                 }
             } catch (error) {
-                alert('Error approving submission');
+                alert('Error approving submission: ' + error.message);
             }
         }
     });
@@ -139,13 +148,20 @@ document.querySelectorAll('.reject-btn').forEach(btn => {
         if (confirm('Reject this submission?')) {
             try {
                 const response = await fetch(`/api/admin/reject-submission/${id}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({csrf_token: csrfToken})
                 });
-                if (response.ok) {
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
                     window.location.reload();
+                } else {
+                    alert(result.error || 'Error rejecting submission');
                 }
             } catch (error) {
-                alert('Error rejecting submission');
+                alert('Error rejecting submission: ' + error.message);
             }
         }
     });

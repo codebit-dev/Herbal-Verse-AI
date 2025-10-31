@@ -2,6 +2,14 @@
 
 {% block title %}Checkout - Virtual Herbal Garden{% endblock %}
 
+{% block extra_css %}
+<style>
+#payment-element {
+    margin-bottom: 24px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <h1 class="text-center mb-4"><i class="fas fa-shopping-cart"></i> Checkout</h1>
@@ -61,10 +69,15 @@
                             <textarea class="form-control" id="customer-address" rows="3" required></textarea>
                         </div>
                         
+                        <div class="mb-4">
+                            <label class="form-label">Payment Details</label>
+                            <div id="payment-element"></div>
+                        </div>
+                        
                         <div id="payment-message" class="alert" style="display:none;"></div>
                         
                         <button type="submit" class="btn btn-success btn-lg w-100" id="submit-button">
-                            <i class="fas fa-lock"></i> Complete Order (${{ "%.2f"|format(total) }})
+                            <i class="fas fa-lock"></i> Pay ${{ "%.2f"|format(total) }}
                         </button>
                     </form>
                 </div>
@@ -85,44 +98,117 @@
     </div>
 </div>
 
+<script src="https://js.stripe.com/v3/"></script>
 <script>
+const stripe = Stripe('{{ stripe_publishable_key }}');
+let elements;
+let paymentElement;
+let clientSecret;
+let stripeConfigured = '{{ stripe_publishable_key }}' !== 'pk_test_demo' && '{{ stripe_publishable_key }}' !== '';
+
+const total = {{ total }};
+const messageDiv = document.getElementById('payment-message');
+const submitButton = document.getElementById('submit-button');
+
+async function initialize() {
+    if (!stripeConfigured) {
+        messageDiv.className = 'alert alert-info';
+        messageDiv.textContent = 'Stripe is not configured. Demo mode only - no real payments will be processed.';
+        messageDiv.style.display = 'block';
+        document.getElementById('payment-element').style.display = 'none';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                amount: total,
+                email: 'customer@example.com'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        clientSecret = data.clientSecret;
+        
+        elements = stripe.elements({ clientSecret });
+        paymentElement = elements.create('payment');
+        paymentElement.mount('#payment-element');
+    } catch (error) {
+        messageDiv.className = 'alert alert-danger';
+        messageDiv.textContent = 'Failed to initialize payment: ' + error.message;
+        messageDiv.style.display = 'block';
+        stripeConfigured = false;
+        document.getElementById('payment-element').style.display = 'none';
+    }
+}
+
+initialize();
+
 document.getElementById('checkout-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const name = document.getElementById('customer-name').value;
     const email = document.getElementById('customer-email').value;
-    const total = {{ total }};
-    
-    const messageDiv = document.getElementById('payment-message');
-    const submitButton = document.getElementById('submit-button');
     
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    messageDiv.style.display = 'none';
     
     try {
-        const response = await fetch('/api/complete-order', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                name: name,
-                email: email,
-                amount: total,
-                payment_id: 'demo_' + Date.now()
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            messageDiv.className = 'alert alert-success';
-            messageDiv.textContent = 'Order completed successfully! Thank you for your purchase.';
-            messageDiv.style.display = 'block';
+        if (stripeConfigured && paymentElement) {
+            const { error, paymentIntent } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: window.location.origin + '/shop',
+                },
+                redirect: 'if_required'
+            });
             
-            setTimeout(() => {
-                window.location.href = '/shop';
-            }, 2000);
+            if (error) {
+                throw new Error(error.message);
+            }
+            
+            if (paymentIntent.status !== 'succeeded') {
+                throw new Error('Payment not completed');
+            }
+            
+            const response = await fetch('/api/complete-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    amount: total,
+                    payment_intent_id: paymentIntent.id
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                messageDiv.className = 'alert alert-success';
+                messageDiv.textContent = 'Payment successful! Thank you for your purchase.';
+                messageDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '/shop';
+                }, 2000);
+            } else {
+                throw new Error(result.error || 'Order failed');
+            }
         } else {
-            throw new Error(result.error || 'Order failed');
+            messageDiv.className = 'alert alert-danger';
+            messageDiv.textContent = 'Cannot process payment. Stripe is not configured. Please contact the administrator.';
+            messageDiv.style.display = 'block';
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-lock"></i> Pay ${{ "%.2f"|format(total) }}';
         }
     } catch (error) {
         messageDiv.className = 'alert alert-danger';
@@ -130,7 +216,7 @@ document.getElementById('checkout-form').addEventListener('submit', async functi
         messageDiv.style.display = 'block';
         
         submitButton.disabled = false;
-        submitButton.innerHTML = '<i class="fas fa-lock"></i> Complete Order (${{ "%.2f"|format(total) }})';
+        submitButton.innerHTML = '<i class="fas fa-lock"></i> Pay ${{ "%.2f"|format(total) }}';
     }
 });
 </script>
