@@ -132,7 +132,7 @@ You can easily deploy this Flask app using:
 
 | Home Page | Chat Page | Herb Info |
 |------------|------------|------------|
-| ![Home](https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=400&q=60) | ![Chat](https://images.unsplash.com/photo-1582560475040-6c2a0b23a0b4?auto=format&fit=crop&w=400&q=60) | ![Info](https://images.unsplash.com/photo-1524594227085-3eb1d6e1b7d4?auto=format&fit=crop&w=400&q=60) |
+| ![Home](https://raw.githubusercontent.com/codebit-dev/Herbal-Verse-AI/refs/heads/main/1.png) | ![Chat](https://raw.githubusercontent.com/codebit-dev/Herbal-Verse-AI/refs/heads/main/2.png) | ![Info](https://raw.githubusercontent.com/codebit-dev/Herbal-Verse-AI/refs/heads/main/3.png) |
 
 ---
 
