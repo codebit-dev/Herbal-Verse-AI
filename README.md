@@ -11,9 +11,11 @@
 **Herbal-Verse-AI** combines the power of Artificial Intelligence with herbal science to create an intelligent and educational experience for plant enthusiasts, students, and natural medicine lovers.
 
 The app allows users to:
-- Ask AI about herbal uses, medicinal properties, and remedies.
-- Explore a database of herbs with detailed descriptions and images.
-- Learn about preparation methods, benefits, and precautions.
+- Ask AI about herbal uses, medicinal properties, and remedies.  
+- Explore a database of herbs with detailed descriptions and images.  
+- Learn about preparation methods, benefits, and precautions.  
+- Order herbs online from verified herbal partners *(coming soon!)*  
+- Join community discussions and share herbal knowledge.  
 - Enjoy an aesthetic, responsive web interface.
 
 ---
@@ -22,6 +24,8 @@ The app allows users to:
 
 ✅ **AI-Powered Chat** – Ask natural questions like “Which herbs help with sleep?” or “What is Ashwagandha used for?”  
 🌿 **Herb Information** – View scientific & traditional info about each herb.  
+🛒 **Order Herbs Online** – Users can explore and place herbal orders from trusted sellers or local stores.  
+💬 **Community Support** – Discuss remedies, share insights, and ask other users about herbal practices.  
 🖼️ **Image Gallery** – Explore herbs visually using real images from Google or the dataset.  
 🧭 **Interactive UI** – Simple navigation with 3D/animated visuals for an immersive experience.  
 💾 **Session Memory (Optional)** – Keeps your previous chat or selected herbs.  
@@ -56,7 +60,9 @@ Herbal-Verse-AI/
 ├── templates/            # HTML frontend templates
 │   ├── index.html
 │   ├── chat.html
-│   └── herb_info.html
+│   ├── herb_info.html
+│   ├── community.html
+│   └── order.html
 ├── .env                  # Environment variables (Gemini API key, Flask secret)
 ├── requirements.txt      # Python dependencies
 ├── README.md             # Project documentation
@@ -136,6 +142,29 @@ You can easily deploy this Flask app using:
 
 ---
 
+## 💬 Community Support
+
+Join our growing community of herbal enthusiasts and developers!
+
+- 🌱 Ask questions, share remedies, or report missing herbs  
+- 💡 Suggest new features or UI improvements  
+- 🤝 Connect with herbal experts and contributors  
+
+> The **Community Hub** is accessible via the “Discuss” or “Community” section in the app.
+
+---
+
+## 🛒 Herb Ordering (New Feature)
+
+Users can now explore herbs and:
+- View trusted sources or local stores to order from  
+- Check availability, price, and health precautions  
+- Place herbal orders directly through integrated platforms *(feature in beta)*  
+
+> ⚠️ This feature currently redirects to verified herbal partners or simulated ordering endpoints.
+
+---
+
 ## 🧪 Testing
 
 To verify the setup locally:
@@ -147,6 +176,7 @@ Or test manually:
 1. Search for a herb.  
 2. Ask AI: “What are the benefits of Tulsi?”  
 3. Explore herb details and gallery.  
+4. Visit Community tab and try the ordering section.
 
 ---
 
@@ -154,7 +184,8 @@ Or test manually:
 
 - [ ] Add voice input & speech output  
 - [ ] Add login/user profiles  
-- [ ] Add community discussion forum  
+- [x] Add community discussion forum  
+- [x] Add herb order & delivery module  
 - [ ] Add multilingual support (Hindi, Bengali, etc.)  
 - [ ] Integrate 3D herb models using Three.js  
 - [ ] Deploy a mobile-friendly version  
@@ -180,11 +211,9 @@ Please make sure to include clear commit messages and test your feature before P
 
 ---
 
----
-
 ## 👨‍💻 Author
 
-**Developed by:** Team Eternals 
+**Developed by:** Team Eternals  
 💡 “Plants are nature’s original medicine — Herbal-Verse-AI helps you rediscover them.”
 
 ---
@@ -200,4 +229,4 @@ Please make sure to include clear commit messages and test your feature before P
 ---
 
 ### 🌟 Star the repo if you like this project!  
-Your support helps grow **Herbal-Verse-AI** and bring natural knowledge to more people 🌿💚
+Your support helps grow **Herbal-Verse-AI** and bring natural knowledge to more people 🌿💚  
