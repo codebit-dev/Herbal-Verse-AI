@@ -2,7 +2,7 @@
 
 > **Herbal-Verse-AI** is an AI-powered virtual herbal assistant that helps users explore the world of medicinal plants, discover their benefits, and interactively learn about natural remedies.
 
-![Demo](https://raw.githubusercontent.com/codebit-dev/Herbal-Verse-AI/refs/heads/main/1.png)
+![Demo](https://raw.githubusercontent.com/codebit-dev/Herbal-Verse-AI/refs/heads/main/banner.png)
 
 ---
 
