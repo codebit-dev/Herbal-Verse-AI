@@ -180,16 +180,11 @@ Please make sure to include clear commit messages and test your feature before P
 
 ---
 
-## 🧾 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
 ---
 
 ## 👨‍💻 Author
 
-**Developed by:** [codebit-dev](https://github.com/codebit-dev)  
-📧 Email: (add your email here)  
+**Developed by:** Team Eternals 
 💡 “Plants are nature’s original medicine — Herbal-Verse-AI helps you rediscover them.”
 
 ---
